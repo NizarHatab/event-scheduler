@@ -7,7 +7,7 @@ A scalable event management app built with **Next.js**, **TypeScript**, and **SQ
 - **Event management**: Create, edit, and delete events (title, date/time, location, description). Create from dashboard modals or from the calendar by clicking a day.
 - **Status tracking**: Mark your response as **Upcoming**, **Attending**, **Maybe**, or **Declined** from the event card or the event detail slide-over.
 - **Search & filters**: Find events by title, date range, location, or status (debounced for smoother typing).
-- **User accounts**: Register and sign in (credentials).
+- **User accounts**: Register and sign in (credentials). Edit your name from the header: click your user pill (top right) → **Edit profile** opens a right-side panel.
 - **Invitations**: Invite others by email; they get a link to accept or decline. Pending invitations appear on the dashboard.
 - **Calendar view**: Month calendar with **Today** button and proper week grid. Click a **day** to create an event with that date; click an **event** to open its detail on the dashboard (`?eventId=`).
 - **AI features**:
@@ -15,7 +15,7 @@ A scalable event management app built with **Next.js**, **TypeScript**, and **SQ
   - **AI suggestions**: Optional title/description/location suggestions in the form (OpenAI or built-in fallbacks).
 - **Conflict detection**: When editing an event, the form warns if the new time overlaps other events.
 - **Export**: Download events as an iCal file (`.ics`) for Google Calendar, Apple Calendar, etc.
-- **UI/UX**: Custom app icon/favicon, theme toggle (light/dark), responsive header with mobile menu, iCal export via button (no broken download), toasts for actions, event detail slide-over, confirm modal for delete, loading skeletons, empty states. **Quick filters** (All / Today / This week). **Next up** card for the nearest upcoming event. **Keyboard shortcut**: ⌘N (Mac) or Ctrl+N (Windows) for new event.
+- **UI/UX**: Custom app icon/favicon, theme toggle (light/dark), responsive header with user menu (Edit profile, Sign out) and mobile menu, iCal export via button, toasts for actions, event detail slide-over, Edit Profile as a right-side slide-over panel, confirm modal for delete, loading skeletons, empty states. **Quick filters** (All / Today / This week). **Next up** card for the nearest upcoming event. **Keyboard shortcut**: ⌘N (Mac) or Ctrl+N (Windows) for new event.
 
 ## Tech stack
 
@@ -94,7 +94,7 @@ Open [http://localhost:3000](http://localhost:3000). Sign up, then create and ma
 ## Project structure
 
 - `src/app/` – App Router pages and API routes (events, auth, invitations, AI suggest/parse-event, export)
-- `src/components/` – Header, EventCard, EventForm, SearchFilters, InviteModal, Modal, ConfirmModal, EventDetailSlideOver, QuickAddBar, InvitationsList, Toast, ThemeToggle, EventListSkeleton
+- `src/components/` – Header, EventCard, EventForm, SearchFilters, InviteModal, Modal, ConfirmModal, EventDetailSlideOver, EditProfileModal (right-side panel), QuickAddBar, InvitationsList, Toast, ThemeToggle, EventListSkeleton
 - `src/lib/` – DB client, auth config, migrations
 - `src/types/` – Shared TypeScript types
 - `drizzle/` – SQL migrations
