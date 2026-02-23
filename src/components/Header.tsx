@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
   Calendar,
   LayoutDashboard,
@@ -11,8 +11,12 @@ import {
   Download,
   Menu,
   X,
+  User,
+  ChevronDown,
+  Pencil,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { EditProfileModal } from "./EditProfileModal";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,11 +27,13 @@ function NavLinks({
   pathname,
   onExport,
   onSignOut,
+  onEditProfile,
   variant = "desktop",
 }: {
   pathname: string;
   onExport: () => void;
   onSignOut: () => void;
+  onEditProfile?: () => void;
   variant?: "desktop" | "mobile";
 }) {
   const base =
@@ -35,7 +41,7 @@ function NavLinks({
       ? "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium"
       : "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors";
   const active =
-    "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300";
+    "bg-indigo-600 text-white shadow-sm dark:bg-indigo-600 dark:text-white";
   const inactive =
     "text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--foreground)] dark:hover:bg-slate-800";
 
@@ -46,6 +52,7 @@ function NavLinks({
           key={href}
           href={href}
           className={`${base} ${pathname === href ? active : inactive}`}
+          aria-current={pathname === href ? "page" : undefined}
         >
           <Icon className="h-5 w-5 shrink-0" />
           {label}
@@ -60,6 +67,16 @@ function NavLinks({
         Export iCal
       </button>
       <ThemeToggle />
+      {onEditProfile && (
+        <button
+          type="button"
+          onClick={onEditProfile}
+          className={`${base} ${inactive} w-full ${variant === "desktop" ? "w-auto" : ""}`}
+        >
+          <Pencil className="h-5 w-5 shrink-0" />
+          Edit profile
+        </button>
+      )}
       <button
         type="button"
         onClick={onSignOut}
@@ -74,13 +91,31 @@ function NavLinks({
 
 export function Header() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [localName, setLocalName] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userLabel = localName ?? session?.user?.name ?? session?.user?.email ?? "Signed in";
 
   useEffect(() => {
     setMobileOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [userMenuOpen]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -125,15 +160,63 @@ export function Header() {
           <span className="hidden sm:inline">Event Scheduler</span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        {/* Desktop: user menu (right) + nav */}
+        <div className="hidden md:flex md:items-center md:gap-2">
+          <nav className="flex items-center gap-1">
           <NavLinks
             pathname={pathname}
             onExport={handleExport}
             onSignOut={() => signOut({ callbackUrl: "/login" })}
             variant="desktop"
           />
-        </nav>
+          </nav>
+          <div className="relative ml-1" ref={userMenuRef}>
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] hover:bg-slate-100 dark:hover:bg-slate-800"
+              aria-expanded={userMenuOpen}
+              aria-haspopup="true"
+              aria-label="User menu"
+            >
+              <User className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+              <span className="max-w-[140px] truncate">{userLabel}</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--muted)] transition ${userMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--card-border)] bg-[var(--card)] py-1 shadow-xl">
+                <div className="border-b border-[var(--card-border)] px-3 py-2">
+                  <p className="truncate text-sm font-medium text-[var(--foreground)]">{userLabel}</p>
+                  <p className="truncate text-xs text-[var(--muted)]" title={session?.user?.email ?? undefined}>
+                    {session?.user?.email}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setEditProfileOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[var(--foreground)] hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Pencil className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+                  Edit profile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    signOut({ callbackUrl: "/login" });
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Mobile: hamburger + dropdown */}
         <div className="relative flex items-center gap-2 md:hidden">
@@ -151,6 +234,10 @@ export function Header() {
               ref={navRef}
               className="absolute right-0 top-full mt-1 flex w-64 flex-col gap-1 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-2 shadow-xl"
             >
+              <div className="flex items-center gap-2 border-b border-[var(--card-border)] px-3 py-2 text-sm text-[var(--muted)]">
+                <User className="h-4 w-4 shrink-0" />
+                <span className="truncate">{userLabel}</span>
+              </div>
               <NavLinks
                 pathname={pathname}
                 onExport={handleExport}
@@ -158,12 +245,24 @@ export function Header() {
                   setMobileOpen(false);
                   signOut({ callbackUrl: "/login" });
                 }}
+                onEditProfile={() => {
+                  setMobileOpen(false);
+                  setEditProfileOpen(true);
+                }}
                 variant="mobile"
               />
             </div>
           )}
         </div>
       </div>
+      {editProfileOpen && session?.user && (
+        <EditProfileModal
+          onClose={() => setEditProfileOpen(false)}
+          initialName={localName ?? session.user.name ?? null}
+          initialEmail={session.user.email ?? ""}
+          onSuccess={(name) => setLocalName(name)}
+        />
+      )}
     </header>
   );
 }

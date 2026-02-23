@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-export default function DashboardLayout({
+export default function CalendarLayout({
   children,
 }: {
   children: React.ReactNode;

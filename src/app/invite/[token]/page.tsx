@@ -22,6 +22,7 @@ export default function InvitePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/invite/${token}`)
@@ -32,6 +33,7 @@ export default function InvitePage() {
   }, [token]);
 
   const handleAccept = async (accept: boolean) => {
+    setError("");
     setAccepting(true);
     try {
       const res = await fetch(`/api/invite/${token}`, {
@@ -39,16 +41,22 @@ export default function InvitePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: accept ? "attending" : "declined" }),
       });
+      const text = await res.text();
+      const data = (text ? JSON.parse(text) : {}) as { error?: string };
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
         if (res.status === 401) {
-          setError("Please sign in first to respond to this invitation.");
+          setError("Please sign in to accept. You can decline without signing in.");
           return;
         }
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      window.location.href = "/dashboard";
+      setSuccessMessage(accept ? "Invitation accepted! Taking you to your events…" : "You declined. Taking you to the app…");
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setAccepting(false);
     }
@@ -100,11 +108,14 @@ export default function InvitePage() {
         {error && (
           <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
         )}
+        {successMessage && (
+          <p className="mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">{successMessage}</p>
+        )}
         <div className="mt-6 flex flex-col gap-2">
           <button
             type="button"
             onClick={() => handleAccept(true)}
-            disabled={accepting}
+            disabled={accepting || !!successMessage}
             className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {accepting ? "…" : "Accept invitation"}
@@ -112,18 +123,21 @@ export default function InvitePage() {
           <button
             type="button"
             onClick={() => handleAccept(false)}
-            disabled={accepting}
+            disabled={accepting || !!successMessage}
             className="w-full rounded-lg border border-slate-300 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 disabled:opacity-50"
           >
             Decline
           </button>
         </div>
-        <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-          You must be signed in as <strong>{info.email}</strong> to respond.{" "}
-          <Link href="/login" className="font-medium text-indigo-600 dark:text-indigo-400">
-            Sign in
-          </Link>
-        </p>
+        {!successMessage && (
+          <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+            To accept, sign in as <strong>{info.email}</strong>.{" "}
+            <Link href={`/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`} className="font-medium text-indigo-600 dark:text-indigo-400">
+              Sign in
+            </Link>
+            {" "}· Decline works without signing in.
+          </p>
+        )}
       </div>
     </div>
   );

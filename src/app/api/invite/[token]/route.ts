@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { events, eventParticipants, invitations, users } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { events, eventParticipants, invitations } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET(
   _req: Request,
@@ -35,10 +35,6 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
   const { token } = await params;
   const body = await req.json().catch(() => ({}));
   const status = body.status === "declined" ? "declined" : "attending";
@@ -51,26 +47,37 @@ export async function POST(
   if (!inv || inv.status !== "pending" || new Date() > inv.expiresAt) {
     return NextResponse.json({ error: "Invitation invalid or expired" }, { status: 404 });
   }
+
+  if (status === "declined") {
+    await db
+      .update(invitations)
+      .set({ status: "declined" })
+      .where(eq(invitations.id, inv.id));
+    return NextResponse.json({ accepted: false });
+  }
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Please sign in to accept this invitation" }, { status: 401 });
+  }
   if (inv.email.toLowerCase() !== (session.user.email ?? "").toLowerCase()) {
     return NextResponse.json({ error: "This invitation was sent to a different email" }, { status: 403 });
   }
   await db
     .update(invitations)
-    .set({ status: status === "declined" ? "declined" : "accepted" })
+    .set({ status: "accepted" })
     .where(eq(invitations.id, inv.id));
-  if (status === "attending") {
-    await db
-      .insert(eventParticipants)
-      .values({
-        eventId: inv.eventId,
-        userId: session.user.id,
-        status: "attending",
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [eventParticipants.eventId, eventParticipants.userId],
-        set: { status: "attending", updatedAt: new Date() },
-      });
-  }
-  return NextResponse.json({ accepted: status === "attending" });
+  await db
+    .insert(eventParticipants)
+    .values({
+      eventId: inv.eventId,
+      userId: session.user.id,
+      status: "attending",
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [eventParticipants.eventId, eventParticipants.userId],
+      set: { status: "attending", updatedAt: new Date() },
+    });
+  return NextResponse.json({ accepted: true });
 }

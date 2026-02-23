@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Copy, Check } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 interface InviteModalProps {
   eventId: string;
@@ -10,6 +11,7 @@ interface InviteModalProps {
 }
 
 export function InviteModal({ eventId, eventTitle, onClose }: InviteModalProps) {
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [link, setLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,13 +28,17 @@ export function InviteModal({ eventId, eventTitle, onClose }: InviteModalProps) 
         body: JSON.stringify({ eventId, email: email.trim() }),
       });
       const data = (await res.json()) as { inviteLink?: string; token?: string; error?: string };
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to send invitation");
+        return;
+      }
       const url = data.inviteLink?.startsWith("http")
         ? data.inviteLink
         : data.token && typeof window !== "undefined"
           ? `${window.location.origin}/invite/${data.token}`
           : data.inviteLink;
       if (url) setLink(url);
-      if (data.error) alert(data.error);
+      toast.success(`Invitation sent to ${email.trim()}`);
     } finally {
       setLoading(false);
     }
