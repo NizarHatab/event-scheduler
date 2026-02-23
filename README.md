@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Event Scheduler
 
-## Getting Started
+A scalable event management app built with **Next.js**, **TypeScript**, and **SQLite** (Turso/libSQL for Vercel). It includes user accounts, invitations, status tracking, search, calendar view, AI-powered suggestions, and iCal export.
 
-First, run the development server:
+## Features
+
+- **Event management**: Create, edit, and delete events (title, date/time, location, description). Create from dashboard modals or from the calendar by clicking a day.
+- **Status tracking**: Mark your response as **Upcoming**, **Attending**, **Maybe**, or **Declined** from the event card or the event detail slide-over.
+- **Search & filters**: Find events by title, date range, location, or status (debounced for smoother typing).
+- **User accounts**: Register and sign in (credentials).
+- **Invitations**: Invite others by email; they get a link to accept or decline. Pending invitations appear on the dashboard.
+- **Calendar view**: Month calendar with **Today** button and proper week grid. Click a **day** to create an event with that date; click an **event** to open its detail on the dashboard (`?eventId=`).
+- **AI features**:
+  - **Quick add**: Type natural language (e.g. “Team standup Monday 9am”, “Dinner tomorrow 7pm”) to create events.
+  - **AI suggestions**: Optional title/description/location suggestions in the form (OpenAI or built-in fallbacks).
+- **Conflict detection**: When editing an event, the form warns if the new time overlaps other events.
+- **Export**: Download events as an iCal file (`.ics`) for Google Calendar, Apple Calendar, etc.
+- **UI/UX**: Custom app icon/favicon, theme toggle (light/dark), responsive header with mobile menu, iCal export via button (no broken download), toasts for actions, event detail slide-over, confirm modal for delete, loading skeletons, empty states. **Quick filters** (All / Today / This week). **Next up** card for the nearest upcoming event. **Keyboard shortcut**: ⌘N (Mac) or Ctrl+N (Windows) for new event.
+
+## Tech stack
+
+- **Next.js 16** (App Router)
+- **TypeScript**
+- **Tailwind CSS**
+- **Drizzle ORM** + **SQLite** via **Turso** (libSQL) for Vercel compatibility
+- **NextAuth.js v5** (credentials)
+
+## Getting started
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment variables
+
+Copy the example env and set at least `AUTH_SECRET` and optionally `NEXTAUTH_URL`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+
+- `AUTH_SECRET` – Required. Use `openssl rand -base64 32` to generate.
+- `NEXTAUTH_URL` – e.g. `http://localhost:3000` for local, or your production URL.
+- For **local dev**, the app uses a local SQLite file (`./local.db`) if `TURSO_DATABASE_URL` is not set.
+- For **Vercel**, set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` (see [Turso](https://turso.tech)).
+- Optional: `OPENAI_API_KEY` for AI suggestions.
+
+### 3. Run migrations
+
+Migrations run automatically during `npm run build`. To run them manually:
+
+```bash
+npm run db:migrate
+```
+
+### 4. Start the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Sign up, then create and manage events.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Create a Turso database** (for SQLite in the cloud):
+   - [Turso](https://turso.tech) – create a database and get `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
 
-## Learn More
+2. **Push to GitHub** and import the repo in Vercel.
 
-To learn more about Next.js, take a look at the following resources:
+3. **Configure environment variables** in Vercel:
+   - `AUTH_SECRET` (generate with `openssl rand -base64 32`)
+   - `NEXTAUTH_URL` = `https://your-app.vercel.app`
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - Optional: `OPENAI_API_KEY`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Deploy**. The build runs `db:migrate` then `next build`, so the Turso DB is migrated automatically.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Script          | Description                    |
+|----------------|--------------------------------|
+| `npm run dev`  | Start dev server               |
+| `npm run build`| Run migrations + Next.js build |
+| `npm run start`| Start production server        |
+| `npm run db:migrate` | Run DB migrations        |
+| `npm run db:generate` | Generate Drizzle migrations (after schema change) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app/` – App Router pages and API routes (events, auth, invitations, AI suggest/parse-event, export)
+- `src/components/` – Header, EventCard, EventForm, SearchFilters, InviteModal, Modal, ConfirmModal, EventDetailSlideOver, QuickAddBar, InvitationsList, Toast, ThemeToggle, EventListSkeleton
+- `src/lib/` – DB client, auth config, migrations
+- `src/types/` – Shared TypeScript types
+- `drizzle/` – SQL migrations
+
+## License
+
+MIT

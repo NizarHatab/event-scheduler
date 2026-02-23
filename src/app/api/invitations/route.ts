@@ -3,7 +3,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { events, invitations, users } from "@/lib/db/schema";
+import { events, invitations } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 
 const inviteSchema = z.object({
@@ -42,7 +42,8 @@ export async function POST(req: Request) {
       token,
       expiresAt,
     });
-    const inviteLink = `${process.env.NEXTAUTH_URL ?? ""}/invite/${token}`;
+    const base = process.env.NEXTAUTH_URL ?? "";
+    const inviteLink = base ? `${base}/invite/${token}` : token;
     return NextResponse.json({ token, inviteLink, expiresAt });
   } catch (e) {
     console.error(e);
@@ -73,8 +74,17 @@ export async function GET(req: Request) {
     return NextResponse.json(list);
   }
   const received = await db
-    .select()
+    .select({
+      id: invitations.id,
+      eventId: invitations.eventId,
+      email: invitations.email,
+      status: invitations.status,
+      token: invitations.token,
+      createdAt: invitations.createdAt,
+      eventTitle: events.title,
+    })
     .from(invitations)
+    .innerJoin(events, eq(invitations.eventId, events.id))
     .where(eq(invitations.email, session.user.email ?? ""));
   return NextResponse.json(received);
 }
