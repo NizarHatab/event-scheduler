@@ -98,6 +98,9 @@ function LoginForm() {
           </Link>
         </p>
       </div>
+      <div className="h-screen bg-inhirit overflow-hidden w-full">
+      
+      </div>
     </div>
   );
 }

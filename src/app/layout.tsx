@@ -25,14 +25,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('event-scheduler-theme');if(t==='dark')document.documentElement.classList.add('dark');else if(t!=='light'){var m=window.matchMedia('(prefers-color-scheme: dark)');if(m.matches)document.documentElement.classList.add('dark');}else document.documentElement.classList.remove('dark');})();`,
-          }}
-        />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+<script
+  src="https://main.d13kl6ytikx1f.amplifyapp.com/api/embed/loader?t=v1.2pKuSkhDjGb4L9reBfHl_uUH394LQ78QlsnlChd6mzEeW5n1OYChm1sJ"
+  defer
+></script>
         <Providers>{children}</Providers>
       </body>
     </html>
